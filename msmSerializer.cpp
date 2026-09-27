@@ -1,4 +1,5 @@
 //---------------------------------------------------------------------------
+// Utilities to support Ocapi7, VlinderNET and Pangaea
 
 #pragma hdrstop
 

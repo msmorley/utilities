@@ -14,6 +14,9 @@
 namespace msm
 {
 
+    using restoreStream= boost::iostreams::filtering_istream;
+    using saveStream= boost::iostreams::filtering_ostream;
+
     // generic serialization class
 
 	class serializer
@@ -37,6 +40,10 @@ namespace msm
 			{
 			}
 
+            virtual ~serializer()
+            {
+            }
+
             [[nodiscard]] const std::size_t __vectorcall fileVersion() const {return m_FileVersion;}
 
 			#ifdef _DEBUG
@@ -49,22 +56,31 @@ namespace msm
 		private:
             using inherited= serializer;
 
-			boost::iostreams::filtering_istream& m_Stream;
+			restoreStream& m_Stream;
 
-		public:
-			explicit restoreMatterStream(boost::iostreams::filtering_istream& a_Stream):
-     			inherited(),
-				m_Stream(a_Stream)
-			{
-			}
-
-            inline boost::iostreams::filtering_istream& __vectorcall stream() {return m_Stream;}
-
+        protected:
             const std::size_t __vectorcall readFileVersion()
             {
                 m_Stream >> m_FileVersion;
 
                 return m_FileVersion;
+            }
+
+		public:
+			explicit restoreMatterStream(restoreStream& a_Stream):
+     			inherited(),
+				m_Stream(a_Stream)
+			{
+			}
+
+            inline restoreStream& __vectorcall stream() {return m_Stream;}
+
+
+            virtual const bool __vectorcall load()
+            {
+                readFileVersion();
+
+                return true;
             }
 
 			// stream operators
@@ -176,20 +192,29 @@ namespace msm
         private:
 			using inherited= serializer;
 
-            boost::iostreams::filtering_ostream& m_Stream;
+            saveStream& m_Stream;
+
+        protected:
+			void __vectorcall writeFileVersion() const
+            {
+                m_Stream << m_FileVersion;
+            }
 
 		public:
-			explicit saveMatterStream(boost::iostreams::filtering_ostream& a_Stream, const std::size_t a_FileVersion):
+			explicit saveMatterStream(saveStream& a_Stream, const std::size_t a_FileVersion):
                 inherited(a_FileVersion),
                 m_Stream(a_Stream)
             {
             }
 
-            inline boost::iostreams::filtering_ostream& __vectorcall stream() {return m_Stream;}
+            inline saveStream& __vectorcall stream() {return m_Stream;}
 
-            void __vectorcall writeFileVersion()
+            virtual const bool __vectorcall save()
             {
-                m_Stream << m_FileVersion;
+				// write version to stream
+				writeFileVersion();
+
+                return true;
             }
 
 			// stream operators

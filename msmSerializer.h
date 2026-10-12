@@ -11,6 +11,11 @@
 #include <boost/nowide/iostream.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
+#include <System.UITypes.hpp>
+
+#include <type_traits>
+#include <fmt/format.h>
+
 #include "msmLogger.h"
 
 namespace msm
@@ -25,7 +30,7 @@ namespace msm
 	{
 		protected:
 			#ifdef _DEBUG
-			std::size_t m_Offset;
+			mutable std::size_t m_Offset;
 			#endif
 
             std::size_t m_FileVersion= 0; // should be overridden in descendant constructors with their appropriate version numbers
@@ -49,7 +54,7 @@ namespace msm
             [[nodiscard]] const std::size_t __vectorcall fileVersion() const {return m_FileVersion;}
 
 			#ifdef _DEBUG
-			const std::size_t __vectorcall offset() {return m_Offset;}
+			[[nodiscard]] const std::size_t __vectorcall offset() const {return m_Offset;}
             #endif
     };
 
@@ -63,8 +68,11 @@ namespace msm
         protected:
             const std::size_t __vectorcall readFileVersion()
             {
-                m_Stream >> m_FileVersion;
-
+            	m_Stream.read(reinterpret_cast<char*>(&m_FileVersion), sizeof(m_FileVersion));
+	            #ifdef _DEBUG
+    	            logLocationOffsetValue(offset(), m_FileVersion);
+        	        m_Offset+= sizeof(m_FileVersion);
+            	#endif
                 return m_FileVersion;
             }
 
@@ -123,13 +131,33 @@ namespace msm
                 return *this;
             }
 
+            restoreMatterStream& __vectorcall operator >>(boost::uuids::uuid& value)
+            {
+                m_Stream.read(reinterpret_cast<char*>(&value), sizeof(value));
+
+                #ifdef _DEBUG
+				logLocationOffset(offset());
+                m_Offset+= sizeof(value);
+                #endif
+
+                return *this;
+            }
+
             template<class T>
            	restoreMatterStream& __vectorcall operator >>(T& value)
             {
                 m_Stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 
                 #ifdef _DEBUG
-				logLocationOffset(offset());
+                if (fmt::is_formattable<T>())
+                {
+					logLocationOffsetValue(offset(), value);
+                }
+                else
+                {
+                    logLocationOffset(offset());
+                }
+
                 m_Offset+= sizeof(T);
                 #endif
 
@@ -137,7 +165,7 @@ namespace msm
             }
 
             template<class T, class U>
-            restoreMatterStream& __vectorcall operator >> (std::pair<T,U> value)
+            restoreMatterStream& __vectorcall operator >> (std::pair<T,U>& value)
             {
                 logLocation();
 
@@ -193,6 +221,18 @@ namespace msm
 				return *this;
 			}
 
+            restoreMatterStream& __vectorcall operator >>(System::Uitypes::TColor& a_Colour)
+            {
+                stream().read(reinterpret_cast<char*>(&a_Colour), sizeof(a_Colour));
+
+                #ifdef _DEBUG
+                    logLocationOffsetValue(offset(), static_cast<int>(a_Colour));
+                    m_Offset+= sizeof(a_Colour);
+                #endif
+
+                return *this;
+            }
+
 	};
 
 
@@ -206,7 +246,11 @@ namespace msm
         protected:
 			void __vectorcall writeFileVersion() const
             {
-                m_Stream << m_FileVersion;
+				m_Stream.write(reinterpret_cast<const char*>(&m_FileVersion), sizeof(m_FileVersion));
+	            #ifdef _DEBUG
+    	            logLocationOffsetValue(offset(), m_FileVersion);
+        	        m_Offset+= sizeof(m_FileVersion);
+            	#endif
             }
 
 		public:
@@ -237,7 +281,7 @@ namespace msm
                 m_Stream.write(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logLocationOffsetValue(offset(), value.c_str());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -253,13 +297,33 @@ namespace msm
                 return *this;
             }
 
+            saveMatterStream& __vectorcall operator <<(boost::uuids::uuid& value)
+            {
+                m_Stream.write(reinterpret_cast<char*>(&value), sizeof(value));
+
+                #ifdef _DEBUG
+                logLocationOffset(offset());
+                m_Offset+= sizeof(value);
+                #endif
+
+                return *this;
+            }
+
             template<class  T>
             saveMatterStream& __vectorcall operator <<(T value)
             {
                 m_Stream.write(reinterpret_cast<char*>(&value), sizeof(value));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                if (fmt::is_formattable<T>())
+                {
+					logLocationOffsetValue(offset(), value);
+                }
+                else
+                {
+                    logLocationOffset(offset());
+                }
+
                 m_Offset+= sizeof(value);
                 #endif
 
@@ -334,6 +398,18 @@ namespace msm
 
 				return *this;
 			}
+
+            saveMatterStream& __vectorcall operator <<(const System::Uitypes::TColor a_Colour)
+            {
+                stream().write(reinterpret_cast<const char*>(&a_Colour), sizeof(a_Colour));
+
+                #ifdef _DEBUG
+                    logLocationOffsetValue(offset(), static_cast<int>(a_Colour));
+                    m_Offset+= sizeof(a_Colour);
+                #endif
+
+                return *this;
+            }
 	};
 
 } // namespace msm

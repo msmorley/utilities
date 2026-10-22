@@ -10,5 +10,7 @@
 namespace msm
 {
 
+    boost::nowide::ofstream loadLogger;
+   	boost::nowide::ofstream saveLogger;
 
 } // namespace msm

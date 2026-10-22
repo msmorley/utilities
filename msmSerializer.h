@@ -10,6 +10,7 @@
 
 #include <boost/nowide/iostream.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <System.UITypes.hpp>
 
@@ -70,7 +71,7 @@ namespace msm
             {
             	m_Stream.read(reinterpret_cast<char*>(&m_FileVersion), sizeof(m_FileVersion));
 	            #ifdef _DEBUG
-    	            logLocationOffsetValue(offset(), m_FileVersion);
+    	            logLoadLocationOffsetValue(offset(), m_FileVersion);
         	        m_Offset+= sizeof(m_FileVersion);
             	#endif
                 return m_FileVersion;
@@ -88,7 +89,7 @@ namespace msm
 
             virtual const bool __vectorcall restore()
             {
-                logLocation();
+                logLoadLocation();
                 readFileVersion();
 
                 return true;
@@ -104,7 +105,7 @@ namespace msm
                 m_Stream.read(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                std::size_t currentOffset= m_Offset;
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -128,6 +129,10 @@ namespace msm
                     value= "";
                 }
 
+                #ifdef _DEBUG
+                logLoadLocationOffsetValue(currentOffset, value);
+                #endif
+
                 return *this;
             }
 
@@ -136,7 +141,7 @@ namespace msm
                 m_Stream.read(reinterpret_cast<char*>(&value), sizeof(value));
 
                 #ifdef _DEBUG
-				logLocationOffset(offset());
+				logLoadLocationOffsetValue(offset(), to_string(value));
                 m_Offset+= sizeof(value);
                 #endif
 
@@ -151,11 +156,11 @@ namespace msm
                 #ifdef _DEBUG
                 if (fmt::is_formattable<T>())
                 {
-					logLocationOffsetValue(offset(), value);
+					logLoadLocationOffsetValue(offset(), value);
                 }
                 else
                 {
-                    logLocationOffset(offset());
+                    logLoadLocationOffset(offset());
                 }
 
                 m_Offset+= sizeof(T);
@@ -167,7 +172,7 @@ namespace msm
             template<class T, class U>
             restoreMatterStream& __vectorcall operator >> (std::pair<T,U>& value)
             {
-                logLocation();
+                logLoadLocation();
 
                 *this >> value.first;
                 *this >> value.second;
@@ -183,7 +188,7 @@ namespace msm
 				m_Stream.read(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logLoadLocationOffset(offset());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -208,7 +213,7 @@ namespace msm
 				m_Stream.read(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logLoadLocationOffset(offset());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -226,7 +231,7 @@ namespace msm
                 stream().read(reinterpret_cast<char*>(&a_Colour), sizeof(a_Colour));
 
                 #ifdef _DEBUG
-                    logLocationOffsetValue(offset(), static_cast<int>(a_Colour));
+                    logLoadLocationOffsetValue(offset(), static_cast<int>(a_Colour));
                     m_Offset+= sizeof(a_Colour);
                 #endif
 
@@ -248,7 +253,7 @@ namespace msm
             {
 				m_Stream.write(reinterpret_cast<const char*>(&m_FileVersion), sizeof(m_FileVersion));
 	            #ifdef _DEBUG
-    	            logLocationOffsetValue(offset(), m_FileVersion);
+    	            logSaveLocationOffsetValue(offset(), m_FileVersion);
         	        m_Offset+= sizeof(m_FileVersion);
             	#endif
             }
@@ -264,7 +269,7 @@ namespace msm
 
             virtual const bool __vectorcall save()
             {
-                logLocation();
+                logSaveLocation();
 				// write version to stream
 				writeFileVersion();
 
@@ -281,7 +286,7 @@ namespace msm
                 m_Stream.write(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffsetValue(offset(), value.c_str());
+                logSaveLocationOffsetValue(offset(), value.c_str());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -302,7 +307,7 @@ namespace msm
                 m_Stream.write(reinterpret_cast<char*>(&value), sizeof(value));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logSaveLocationOffsetValue(offset(), to_string(value));
                 m_Offset+= sizeof(value);
                 #endif
 
@@ -317,11 +322,11 @@ namespace msm
                 #ifdef _DEBUG
                 if (fmt::is_formattable<T>())
                 {
-					logLocationOffsetValue(offset(), value);
+					logSaveLocationOffsetValue(offset(), value);
                 }
                 else
                 {
-                    logLocationOffset(offset());
+                    logSaveLocationOffset(offset());
                 }
 
                 m_Offset+= sizeof(value);
@@ -337,7 +342,7 @@ namespace msm
                 m_Stream.write(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logSaveLocationOffset(offset());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -356,7 +361,7 @@ namespace msm
                 m_Stream.write(reinterpret_cast<char*>(&length), sizeof(length));
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logSaveLocationOffset(offset());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -372,7 +377,7 @@ namespace msm
             template<class T, class U>
             saveMatterStream& __vectorcall operator << (std::pair<T,U> value)
             {
-                logLocation();
+                logSaveLocation();
 
                 *this << value.first;
                 *this << value.second;
@@ -385,7 +390,7 @@ namespace msm
 				std::size_t length= values.size();
 
                 #ifdef _DEBUG
-                logLocationOffset(offset());
+                logSaveLocationOffset(offset());
                 m_Offset+= sizeof(length);
                 #endif
 
@@ -404,7 +409,7 @@ namespace msm
                 stream().write(reinterpret_cast<const char*>(&a_Colour), sizeof(a_Colour));
 
                 #ifdef _DEBUG
-                    logLocationOffsetValue(offset(), static_cast<int>(a_Colour));
+                    logSaveLocationOffsetValue(offset(), static_cast<int>(a_Colour));
                     m_Offset+= sizeof(a_Colour);
                 #endif
 

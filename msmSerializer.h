@@ -197,7 +197,7 @@ namespace msm
 
 				for (auto& value : values)
 				{
-					*this >> value;
+//					*this >> value;
 				}
 
 				return *this;
@@ -354,7 +354,7 @@ namespace msm
                 return *this;
             }
 
-/*            template<class T>
+            template<class T>
             saveMatterStream& __vectorcall operator <<(std::vector<std::unique_ptr<T>>& values)
             {
                 std::size_t length= values.size();
@@ -367,12 +367,12 @@ namespace msm
 
                 for (auto& value : values)
                 {
-                    *this << value;
+                    *this << *value;
                 }
 
                 return *this;
             }
-*/
+
 
             template<class T, class U>
             saveMatterStream& __vectorcall operator << (std::pair<T,U> value)
